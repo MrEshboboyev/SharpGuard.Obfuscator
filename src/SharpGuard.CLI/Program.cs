@@ -1,19 +1,18 @@
-﻿using SharpGuard.Core;
+﻿using SharpGuard.CLI;
+using SharpGuard.Core;
 
 Console.WriteLine("=== SharpGuard Obfuscator v1.0 ===");
 
-if (args.Length < 1)
+var parsedArgs = Arguments.Parse(args);
+if (parsedArgs == null || string.IsNullOrEmpty(parsedArgs.InputPath))
 {
-    Console.WriteLine("Foydalanish: SharpGuard.CLI <file_path>");
+    Console.WriteLine("Qo'llash: SharpGuard.CLI <path> --str --cf");
     return;
 }
 
-string input = args[0];
-string output = input.Replace(".dll", "_protected.dll").Replace(".exe", "_protected.exe");
-
 try
 {
-    var protector = new Protector(input, output);
+    var protector = new Protector(parsedArgs.InputPath, parsedArgs.OutputPath!);
     protector.Execute();
 }
 catch (Exception ex)

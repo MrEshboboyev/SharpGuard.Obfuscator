@@ -1,4 +1,5 @@
-﻿using SharpGuard.Core.Models;
+﻿using SharpGuard.Core.Helpers;
+using SharpGuard.Core.Models;
 
 namespace SharpGuard.Core.Engines;
 
@@ -13,13 +14,18 @@ public class RenamingEngine : ObfuscationEngineBase
         {
             if (type.IsGlobalModuleType || type.IsRuntimeSpecialName) continue;
 
-            // Klass nomini o'zgartirish
-            type.Name = GetRandomName();
+            type.Name = Randomizer.GenerateName(12, Randomizer.NamingScheme.Confusing);
 
             foreach (var method in type.Methods)
             {
+                // Konstruktorlarni yoki runtime metodlarini o'zgartirmaymiz
                 if (method.IsRuntimeSpecialName) continue;
-                method.Name = GetRandomName();
+
+                if (context.Module.EntryPoint != null && context.Module.EntryPoint == method)
+                    continue;
+
+                // Metod nomini o'zgartirish
+                method.Name = Randomizer.GenerateName(10, Randomizer.NamingScheme.Confusing);
             }
         }
     }
