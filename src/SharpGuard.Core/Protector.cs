@@ -9,7 +9,7 @@ public class Protector(string inputPath, string outputPath)
     private readonly List<IObfuscationEngine> _engines =
         [
             new RenamingEngine(),
-            // Kelajakda: new StringEncryptionEngine(),
+            new StringEncryptionEngine(),
             // Kelajakda: new ControlFlowEngine()
         ];
 
