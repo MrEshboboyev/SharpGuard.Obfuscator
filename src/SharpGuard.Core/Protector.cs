@@ -10,7 +10,7 @@ public class Protector(string inputPath, string outputPath)
         [
             new RenamingEngine(),
             new StringEncryptionEngine(),
-            // Kelajakda: new ControlFlowEngine()
+            new ControlFlowEngine()
         ];
 
     public void Execute()
