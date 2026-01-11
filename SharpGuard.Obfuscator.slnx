@@ -1,1 +1,19 @@
-<Solution />
+<Solution>
+  <Folder Name="/docs/">
+    <File Path="docs/simple-doc.txt" />
+  </Folder>
+  <Folder Name="/samples/">
+    <File Path="samples/simple-code.txt" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path=".gitignore" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/SharpGuard.CLI/SharpGuard.CLI.csproj" />
+    <Project Path="src/SharpGuard.Core/SharpGuard.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SharpGuard.UnitTests/SharpGuard.UnitTests.csproj" />
+    <Project Path="tests/TestTargetApp/TestTargetApp.csproj" />
+  </Folder>
+</Solution>
