@@ -10,7 +10,8 @@ public class Protector(string inputPath, string outputPath)
         [
             new RenamingEngine(),
             new StringEncryptionEngine(),
-            new ControlFlowEngine()
+            new ControlFlowEngine(),
+            new Watermarking()
         ];
 
     public void Execute()
