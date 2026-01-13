@@ -25,4 +25,13 @@ public static class DnlibExtensions
         method.Body.SimplifyMacros(method.Parameters);
         method.Body.OptimizeMacros();
     }
+
+    public static void FinalizeMethod(this MethodDef method)
+    {
+        if (method.HasBody)
+        {
+            method.Body.SimplifyMacros(method.Parameters);
+            method.Body.OptimizeMacros();
+        }
+    }
 }
