@@ -18,13 +18,11 @@ public class RenamingEngine : ObfuscationEngineBase
 
             foreach (var method in type.Methods)
             {
-                // Konstruktorlarni yoki runtime metodlarini o'zgartirmaymiz
                 if (method.IsRuntimeSpecialName) continue;
 
                 if (context.Module.EntryPoint != null && context.Module.EntryPoint == method)
                     continue;
 
-                // Metod nomini o'zgartirish
                 method.Name = Randomizer.GenerateName(10, Randomizer.NamingScheme.Confusing);
             }
         }

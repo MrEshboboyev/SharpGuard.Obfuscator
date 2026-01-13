@@ -18,7 +18,6 @@ public class ControlFlowEngine : ObfuscationEngineBase
             {
                 if (!method.HasBody || !method.Body.HasInstructions || method.Body.Instructions.Count < 3) continue;
 
-                // Metod oqimini chalkashtirish
                 ExecuteControlFlowFlattening(method);
             }
         }
@@ -32,11 +31,9 @@ public class ControlFlowEngine : ObfuscationEngineBase
         var instructions = body.Instructions;
         var blocks = BaseBlock.Split(method);
 
-        // Bloklarni aralashtirish (Shuffling)
         if (blocks.Count < 2) return;
         var shuffledBlocks = blocks.OrderBy(x => Guid.NewGuid()).ToList();
 
-        // Yangi body tayyorlash
         body.Instructions.Clear();
         var stateVar = new Local(method.Module.CorLibTypes.Int32);
         body.Variables.Add(stateVar);
@@ -44,12 +41,10 @@ public class ControlFlowEngine : ObfuscationEngineBase
         var switchHeader = OpCodes.Nop.ToInstruction();
         var defaultLabel = OpCodes.Ret.ToInstruction();
 
-        // 1. Kirish nuqtasi: State = birinchi blokning ID si
         body.Instructions.Add(OpCodes.Ldc_I4.ToInstruction(blocks[0].Id));
         body.Instructions.Add(OpCodes.Stloc.ToInstruction(stateVar));
         body.Instructions.Add(OpCodes.Br.ToInstruction(switchHeader));
 
-        // 2. Switch mexanizmi
         body.Instructions.Add(switchHeader);
         body.Instructions.Add(OpCodes.Ldloc.ToInstruction(stateVar));
 
@@ -57,7 +52,6 @@ public class ControlFlowEngine : ObfuscationEngineBase
         body.Instructions.Add(switchInstr);
         body.Instructions.Add(OpCodes.Br.ToInstruction(defaultLabel));
 
-        // 3. Har bir blokni joylashtirish
         var targetLabels = new Instruction[blocks.Count];
         foreach (var block in shuffledBlocks)
         {
@@ -67,7 +61,6 @@ public class ControlFlowEngine : ObfuscationEngineBase
             foreach (var instr in block.Instructions)
                 body.Instructions.Add(instr);
 
-            // Blok oxirida keyingi holatni o'rnatish
             int nextId = (block.Id + 1 < blocks.Count) ? blocks[block.Id + 1].Id : -1;
             if (nextId != -1)
             {
@@ -84,11 +77,9 @@ public class ControlFlowEngine : ObfuscationEngineBase
         switchInstr.Operand = targetLabels;
         body.Instructions.Add(defaultLabel);
 
-        // Xatolik tuzatildi: metod parametrlarini uzatamiz
         body.OptimizeMacros();
     }
 
-    // Ichki klass: Kodni mantiqiy bo'laklarga ajratish uchun
     private class BaseBlock
     {
         public int Id { get; set; }
@@ -104,7 +95,6 @@ public class ControlFlowEngine : ObfuscationEngineBase
             {
                 currentBlock.Instructions.Add(instr);
 
-                // Agar buyruq oqimni o'zgartirsa (branch, return) yangi blok boshlaymiz
                 if (IsTerminator(instr.OpCode))
                 {
                     currentBlock = new BaseBlock { Id = blocks.Count };

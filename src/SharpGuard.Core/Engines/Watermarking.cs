@@ -26,7 +26,6 @@ public class Watermarking : ObfuscationEngineBase
             MethodAttributes.SpecialName | MethodAttributes.RTSpecialName
         );
 
-        // Body qo'shish
         var body = new CilBody();
         body.Instructions.Add(OpCodes.Ret.ToInstruction());
         ctor.Body = body;

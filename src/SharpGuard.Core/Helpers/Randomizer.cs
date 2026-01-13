@@ -9,8 +9,8 @@ public static class Randomizer
     public enum NamingScheme
     {
         Alphanumeric,   // aB12...
-        Confusing,      // lIIll1I... (Eng qiyin o'qiladigani)
-        Invisible,      // Unkod ko'rinmas belgilari
+        Confusing,      // lIIll1I... (most hard readable)
+        Invisible,      // invisible unicode characters
         Simple          // a, b, c...
     }
 
@@ -21,23 +21,22 @@ public static class Randomizer
         { NamingScheme.Simple, "abcdefghijklmnopqrstuvwxyz" }
     };
 
-    // Ko'rinmas belgilar to'plami (Unkod)
     private static readonly string[] _invisibleChars = { "\u200B", "\u200C", "\u200D", "\u200E", "\u200F" };
 
     public static string GenerateName(int length = 10, NamingScheme scheme = NamingScheme.Confusing)
     {
         if (scheme == NamingScheme.Invisible)
         {
-            StringBuilder sb = new("_"); // Nom harf bilan boshlanishi shart
+            StringBuilder sb = new("_");
             for (int i = 0; i < length; i++)
                 sb.Append(_invisibleChars[_random.Next(_invisibleChars.Length)]);
+
             return sb.ToString();
         }
 
         string chars = _charSets[scheme];
         char[] identifier = new char[length];
 
-        // Birinchi belgi raqam bo'lmasligini ta'minlaymiz (.NET qoidasi)
         string letters = new(chars.Where(c => char.IsLetter(c) || c == '_').ToArray());
         if (string.IsNullOrEmpty(letters)) letters = "a";
 

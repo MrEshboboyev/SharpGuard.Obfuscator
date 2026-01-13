@@ -7,16 +7,15 @@ public class Protector(string inputPath, string outputPath)
 {
     private readonly ObfuscationContext _context = new(inputPath, outputPath);
     private readonly List<IObfuscationEngine> _engines =
-        [
-            new RenamingEngine(),
-            new StringEncryptionEngine(),
-            new ControlFlowEngine(),
-            new Watermarking()
-        ];
+    [
+        new RenamingEngine(),
+        new StringEncryptionEngine(),
+        new ControlFlowEngine(),
+        new Watermarking()
+    ];
 
     public void Execute()
     {
-        // Barcha engine'larni ketma-ket ishga tushirish
         foreach (var engine in _engines)
         {
             engine.Execute(_context);

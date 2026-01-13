@@ -40,13 +40,11 @@ public class Arguments
                     parsed.ObfuscateControlFlow = true;
                     break;
                 default:
-                    // Agar birinchi argument bo'lsa va - belgisi bo'lmasa, uni kirish fayli deb olamiz
-                    if (i == 0 && !arg.StartsWith("-")) parsed.InputPath = args[i];
+                    if (i == 0 && !arg.StartsWith('-')) parsed.InputPath = args[i];
                     break;
             }
         }
 
-        // Agar output ko'rsatilmagan bo'lsa, avtomatik yaratamiz
         if (string.IsNullOrEmpty(parsed.OutputPath) && !string.IsNullOrEmpty(parsed.InputPath))
         {
             parsed.OutputPath = parsed.InputPath.Replace(".dll", "_protected.dll").Replace(".exe", "_protected.exe");
