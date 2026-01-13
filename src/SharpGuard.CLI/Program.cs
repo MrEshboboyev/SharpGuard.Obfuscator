@@ -19,3 +19,7 @@ catch (Exception ex)
 {
     Console.WriteLine($"[!] Xatolik yuz berdi: {ex.Message}");
 }
+
+Console.ForegroundColor = ConsoleColor.Green;
+Console.WriteLine("[✔] Obfuskatsiya muvaffaqiyatli yakunlandi!");
+Console.ResetColor();
