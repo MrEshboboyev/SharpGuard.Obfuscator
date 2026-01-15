@@ -3,7 +3,9 @@ using System.Security.Cryptography;
 using dnlib.DotNet;
 using dnlib.DotNet.Emit;
 using SharpGuard.Core.Abstractions;
+using SharpGuard.Core.Configuration;
 using SharpGuard.Core.Services;
+using ILogger = SharpGuard.Core.Services.ILogger;
 
 namespace SharpGuard.Core.Strategies;
 
@@ -11,23 +13,14 @@ namespace SharpGuard.Core.Strategies;
 /// Advanced control flow obfuscation using opaque predicates and bogus control flow
 /// Implements Decorator and Strategy patterns
 /// </summary>
-public class ControlFlowObfuscationStrategy : IProtectionStrategy
+public class ControlFlowObfuscationStrategy(IRandomGenerator random, ILogger logger) : IProtectionStrategy
 {
     public string Id => "controlflow";
     public string Name => "Advanced Control Flow Obfuscation";
     public string Description => "Protects against static analysis through opaque predicates and control flow scrambling";
     public int Priority => 800;
-    public ImmutableArray<string> Dependencies => ImmutableArray<string>.Empty;
-    public ImmutableArray<string> ConflictsWith => ImmutableArray.Create("mutation");
-
-    private readonly IRandomGenerator _random;
-    private readonly ILogger _logger;
-
-    public ControlFlowObfuscationStrategy(IRandomGenerator random, ILogger logger)
-    {
-        _random = random;
-        _logger = logger;
-    }
+    public ImmutableArray<string> Dependencies => [];
+    public ImmutableArray<string> ConflictsWith => ["mutation"];
 
     public bool CanApply(ModuleDef module)
     {
@@ -60,7 +53,7 @@ public class ControlFlowObfuscationStrategy : IProtectionStrategy
             }
         }
 
-        _logger.LogInformation("Control flow obfuscation: {Methods} methods, {Instructions} instructions processed", 
+        logger.LogInformation("Control flow obfuscation: {Methods} methods, {Instructions} instructions processed", 
             processedMethods, totalInstructions);
     }
 
@@ -95,7 +88,7 @@ public class ControlFlowObfuscationStrategy : IProtectionStrategy
         var instructions = body.Instructions.ToList();
         var insertPoints = FindInsertionPoints(instructions);
         
-        foreach (var point in insertPoints.Take(_random.Next(1, 4))) // 1-3 predicates per method
+        foreach (var point in insertPoints.Take(random.Next(1, 4))) // 1-3 predicates per method
         {
             var predicate = GenerateOpaquePredicate();
             body.Instructions.Insert(point.Index, predicate);
@@ -110,10 +103,10 @@ public class ControlFlowObfuscationStrategy : IProtectionStrategy
     {
         // Generate mathematically proven opaque predicate
         // Example: (x * 0) == 0 (always true) or (x & 0) != 0 (always false)
-        var value = _random.Next(0, 2) == 0;
+        var value = random.Next(0, 2) == 0;
         
         return new OpaquePredicatePoint(
-            new Instruction(OpCodes.Ldc_I4, _random.Next(1, 1000)),
+            new Instruction(OpCodes.Ldc_I4, random.Next(1, 1000)),
             new Instruction(OpCodes.Ldc_I4_0),
             new Instruction(value ? OpCodes.Mul : OpCodes.And),
             new Instruction(value ? OpCodes.Ldc_I4_0 : OpCodes.Ldc_I4_1),
@@ -212,7 +205,7 @@ public class ControlFlowObfuscationStrategy : IProtectionStrategy
             }
         }
         
-        return points.OrderBy(_ => _random.Next()).ToList();
+        return points.OrderBy(_ => random.Next()).ToList();
     }
 
     private bool IsBranchingInstruction(OpCode opcode)

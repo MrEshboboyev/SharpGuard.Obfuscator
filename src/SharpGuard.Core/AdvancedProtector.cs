@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Reflection;
 using dnlib.DotNet;
 using SharpGuard.Core.Abstractions;
@@ -5,6 +6,7 @@ using SharpGuard.Core.Configuration;
 using SharpGuard.Core.Orchestration;
 using SharpGuard.Core.Services;
 using SharpGuard.Core.Strategies;
+using ILogger = SharpGuard.Core.Services.ILogger;
 
 namespace SharpGuard.Core;
 
@@ -40,8 +42,7 @@ public class AdvancedProtector
         if (string.IsNullOrEmpty(inputPath))
             throw new ArgumentException("Input path cannot be null or empty", nameof(inputPath));
 
-        if (config == null)
-            throw new ArgumentNullException(nameof(config));
+        ArgumentNullException.ThrowIfNull(config);
 
         _logger.LogInformation("Starting advanced protection for: {Path}", inputPath);
 
@@ -58,10 +59,10 @@ public class AdvancedProtector
             {
                 return new ProtectionResult(
                     Success: false,
-                    AppliedStrategies: ImmutableArray<string>.Empty,
-                    Errors: ImmutableArray.Create<Exception>(new InvalidOperationException("Failed to load module")),
+                    AppliedStrategies: [],
+                    Errors: [new InvalidOperationException("Failed to load module")],
                     Duration: TimeSpan.Zero,
-                    Diagnostics: ImmutableArray<DiagnosticMessage>.Empty
+                    Diagnostics: []
                 );
             }
 
@@ -147,19 +148,19 @@ public class AdvancedProtector
             errors.Add("Output path must be specified");
         }
 
-        return new ValidationResult(!errors.Any(), errors, warnings);
+        return new ValidationResult(errors.Count == 0, errors, warnings);
     }
 
     private List<IProtectionStrategy> InitializeStrategies()
     {
-        return new List<IProtectionStrategy>
-        {
+        return
+        [
             new AntiDebuggingStrategy(_random, _logger),
             new StringEncryptionStrategy(_random, _logger),
             new ControlFlowObfuscationStrategy(_random, _logger),
             new RenamingStrategy(_random, _logger)
             // Additional strategies would be added here
-        };
+        ];
     }
 
     private async Task<ProtectionResult> PreprocessAsync(string inputPath, ProtectionConfiguration config)

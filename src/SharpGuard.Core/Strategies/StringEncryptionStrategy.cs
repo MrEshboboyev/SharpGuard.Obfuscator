@@ -4,7 +4,9 @@ using System.Text;
 using dnlib.DotNet;
 using dnlib.DotNet.Emit;
 using SharpGuard.Core.Abstractions;
+using SharpGuard.Core.Configuration;
 using SharpGuard.Core.Services;
+using ILogger = dnlib.DotNet.ILogger;
 
 namespace SharpGuard.Core.Strategies;
 
@@ -12,24 +14,19 @@ namespace SharpGuard.Core.Strategies;
 /// Advanced string encryption with dynamic decryption and anti-dumping techniques
 /// Implements Chain of Responsibility and Proxy patterns
 /// </summary>
-public class StringEncryptionStrategy : IProtectionStrategy
+public class StringEncryptionStrategy(
+    IRandomGenerator random, 
+    ILogger logger
+) : IProtectionStrategy
 {
     public string Id => "stringenc";
     public string Name => "Advanced String Encryption";
     public string Description => "Encrypts strings with dynamic decryption and anti-memory dumping protection";
     public int Priority => 900;
-    public ImmutableArray<string> Dependencies => ImmutableArray<string>.Empty;
-    public ImmutableArray<string> ConflictsWith => ImmutableArray<string>.Empty;
+    public ImmutableArray<string> Dependencies => [];
+    public ImmutableArray<string> ConflictsWith => [];
 
-    private readonly IRandomGenerator _random;
-    private readonly ILogger _logger;
-    private readonly Dictionary<string, EncryptedString> _encryptedStrings = new();
-
-    public StringEncryptionStrategy(IRandomGenerator random, ILogger logger)
-    {
-        _random = random;
-        _logger = logger;
-    }
+    private readonly Dictionary<string, EncryptedString> _encryptedStrings = [];
 
     public bool CanApply(ModuleDef module)
     {
@@ -52,7 +49,7 @@ public class StringEncryptionStrategy : IProtectionStrategy
         // Third pass: inject decryption runtime
         InjectDecryptionRuntime(module, context, config);
         
-        _logger.LogInformation("String encryption: {Count} strings encrypted", _encryptedStrings.Count);
+        logger.LogInformation("String encryption: {Count} strings encrypted", _encryptedStrings.Count);
     }
 
     private void CollectAndEncryptStrings(ModuleDef module, ProtectionContext context)
@@ -344,7 +341,7 @@ public class StringEncryptionStrategy : IProtectionStrategy
 
     private byte[] GenerateEncryptionKey()
     {
-        return _random.NextBytes(32);
+        return random.NextBytes(32);
     }
 
     private byte[] ObfuscateKey(byte[] key)
@@ -360,12 +357,12 @@ public class StringEncryptionStrategy : IProtectionStrategy
 
     private string GenerateObfuscatedName()
     {
-        return "_" + _random.NextString(16);
+        return "_" + random.NextString(16);
     }
 
     private string GenerateObfuscatedMethodName()
     {
-        return "__" + _random.NextString(12);
+        return "__" + random.NextString(12);
     }
 
     private bool HasStrings(MethodDef method)
@@ -400,4 +397,5 @@ public record EncryptedString(
     string OriginalValue,
     byte[] EncryptedData,
     byte[] Key,
-    EncryptionAlgorithm Algorithm);
+    EncryptionAlgorithm Algorithm
+);

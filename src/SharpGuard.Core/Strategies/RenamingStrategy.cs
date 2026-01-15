@@ -1,10 +1,10 @@
-using System.Collections.Immutable;
-using System.Globalization;
-using System.Security.Cryptography;
-using System.Text;
 using dnlib.DotNet;
 using SharpGuard.Core.Abstractions;
+using SharpGuard.Core.Configuration;
 using SharpGuard.Core.Services;
+using System.Collections.Immutable;
+using System.Globalization;
+using ILogger = SharpGuard.Core.Services.ILogger;
 
 namespace SharpGuard.Core.Strategies;
 
@@ -12,27 +12,21 @@ namespace SharpGuard.Core.Strategies;
 /// Advanced renaming strategy with contextual awareness and collision avoidance
 /// Implements Flyweight and Factory patterns
 /// </summary>
-public class RenamingStrategy : IProtectionStrategy
+public class RenamingStrategy(
+    IRandomGenerator random,
+    ILogger logger
+) : IProtectionStrategy
 {
     public string Id => "renaming";
     public string Name => "Intelligent Symbol Renaming";
     public string Description => "Renames symbols with collision-free, context-aware obfuscation";
     public int Priority => 700;
-    public ImmutableArray<string> Dependencies => ImmutableArray<string>.Empty;
-    public ImmutableArray<string> ConflictsWith => ImmutableArray<string>.Empty;
+    public ImmutableArray<string> Dependencies => [];
+    public ImmutableArray<string> ConflictsWith => [];
 
-    private readonly IRandomGenerator _random;
-    private readonly ILogger _logger;
-    private readonly NameGenerator _nameGenerator;
-    private readonly Dictionary<string, string> _renameMap = new();
-    private readonly HashSet<string> _usedNames = new();
-
-    public RenamingStrategy(IRandomGenerator random, ILogger logger)
-    {
-        _random = random;
-        _logger = logger;
-        _nameGenerator = new NameGenerator(random);
-    }
+    private readonly NameGenerator _nameGenerator = new(random);
+    private readonly Dictionary<string, string> _renameMap = [];
+    private readonly HashSet<string> _usedNames = [];
 
     public bool CanApply(ModuleDef module)
     {
@@ -70,7 +64,7 @@ public class RenamingStrategy : IProtectionStrategy
             GenerateMappingFile(context);
         }
 
-        _logger.LogInformation("Renaming: {Count} symbols renamed", renamedItems);
+        logger.LogInformation("Renaming: {Count} symbols renamed", renamedItems);
     }
 
     private NamingContext AnalyzeNamingContext(ModuleDef module, ProtectionContext context)
