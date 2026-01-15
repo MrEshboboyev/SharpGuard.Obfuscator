@@ -11,16 +11,12 @@ namespace SharpGuard.Core.Orchestration;
 /// Orchestrates the execution of protection strategies
 /// Implements Topological Sort algorithm for dependency resolution
 /// </summary>
-public class StrategyOrchestrator
+public class StrategyOrchestrator(
+    IEnumerable<IProtectionStrategy> strategies, 
+    ILogger logger
+)
 {
-    private readonly ImmutableList<IProtectionStrategy> _strategies;
-    private readonly ILogger _logger;
-
-    public StrategyOrchestrator(IEnumerable<IProtectionStrategy> strategies, ILogger logger)
-    {
-        _strategies = strategies.OrderBy(s => s.Priority).ToImmutableList();
-        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-    }
+    private readonly ImmutableList<IProtectionStrategy> _strategies = [.. strategies.OrderBy(s => s.Priority)];
 
     /// <summary>
     /// Executes all applicable strategies in the correct order
@@ -30,7 +26,7 @@ public class StrategyOrchestrator
         var context = new ProtectionContext(module, config);
         
         // Register core services
-        context.RegisterService<ILogger>(_logger);
+        context.RegisterService(logger);
         context.RegisterService<IRandomGenerator>(new SecureRandomGenerator());
         context.RegisterService<IMetadataPreserver>(new MetadataPreserver(config));
 
@@ -43,19 +39,19 @@ public class StrategyOrchestrator
             // Resolve strategy execution order
             var executionOrder = ResolveExecutionOrder(config);
             
-            _logger.LogInformation("Starting protection with {Count} strategies", executionOrder.Count);
+            logger.LogInformation("Starting protection with {Count} strategies", executionOrder.Count);
 
             foreach (var strategy in executionOrder)
             {
                 if (!strategy.CanApply(module))
                 {
-                    _logger.LogDebug("Skipping strategy {Strategy} - not applicable", strategy.Name);
+                    logger.LogDebug("Skipping strategy {Strategy} - not applicable", strategy.Name);
                     continue;
                 }
 
                 try
                 {
-                    _logger.LogInformation("Applying strategy: {Strategy}", strategy.Name);
+                    logger.LogInformation("Applying strategy: {Strategy}", strategy.Name);
                     
                     var strategyStartTime = DateTime.UtcNow;
                     strategy.Apply(module, context);
@@ -64,12 +60,12 @@ public class StrategyOrchestrator
                     context.MarkStrategyApplied(strategy.Id);
                     appliedStrategies.Add(strategy.Id);
                     
-                    _logger.LogInformation("Strategy {Strategy} completed in {Duration}ms", 
+                    logger.LogInformation("Strategy {Strategy} completed in {Duration}ms", 
                         strategy.Name, duration.TotalMilliseconds);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Strategy {Strategy} failed", strategy.Name);
+                    logger.LogError(ex, "Strategy {Strategy} failed", strategy.Name);
                     errors.Add(ex);
                     
                     if (config.Debug == DebugMode.Full)
@@ -86,23 +82,23 @@ public class StrategyOrchestrator
             
             return new ProtectionResult(
                 Success: errors.Count == 0,
-                AppliedStrategies: appliedStrategies.ToImmutableArray(),
-                Errors: errors.ToImmutableArray(),
+                AppliedStrategies: [.. appliedStrategies],
+                Errors: [.. errors],
                 Duration: totalTime,
-                Diagnostics: context.Diagnostics.ToImmutableArray()
+                Diagnostics: [.. context.Diagnostics]
             );
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Protection orchestration failed");
+            logger.LogError(ex, "Protection orchestration failed");
             errors.Add(ex);
             
             return new ProtectionResult(
                 Success: false,
-                AppliedStrategies: appliedStrategies.ToImmutableArray(),
-                Errors: errors.ToImmutableArray(),
+                AppliedStrategies: [.. appliedStrategies],
+                Errors: [.. errors],
                 Duration: DateTime.UtcNow - startTime,
-                Diagnostics: context.Diagnostics.ToImmutableArray()
+                Diagnostics: [.. context.Diagnostics]
             );
         }
     }
@@ -119,7 +115,7 @@ public class StrategyOrchestrator
 
         if (enabledStrategies.Count == 0)
         {
-            _logger.LogWarning("No protection strategies are enabled");
+            logger.LogWarning("No protection strategies are enabled");
             return ImmutableList<IProtectionStrategy>.Empty;
         }
 
@@ -135,10 +131,10 @@ public class StrategyOrchestrator
         // Topological sort
         var sorted = TopologicalSort(graph);
         
-        _logger.LogDebug("Resolved execution order: {Order}", 
+        logger.LogDebug("Resolved execution order: {Order}", 
             string.Join(" -> ", sorted.Select(s => s.Name)));
         
-        return sorted.ToImmutableList();
+        return [.. sorted];
     }
 
     private Dictionary<IProtectionStrategy, List<IProtectionStrategy>> BuildDependencyGraph(
@@ -148,7 +144,7 @@ public class StrategyOrchestrator
         
         foreach (var strategy in strategies)
         {
-            graph[strategy] = new List<IProtectionStrategy>();
+            graph[strategy] = [];
             
             // Add dependencies
             foreach (var depId in strategy.Dependencies)
@@ -232,7 +228,7 @@ public class StrategyOrchestrator
         return result;
     }
 
-    private bool IsStrategyEnabled(IProtectionStrategy strategy, ProtectionConfiguration config)
+    private static bool IsStrategyEnabled(IProtectionStrategy strategy, ProtectionConfiguration config)
     {
         return strategy.Id switch
         {
@@ -257,7 +253,7 @@ public class StrategyOrchestrator
         if (config.Optimization == OptimizationLevel.None)
             return;
 
-        _logger.LogInformation("Performing final optimizations...");
+        logger.LogInformation("Performing final optimizations...");
         
         // Simplify instructions
         foreach (var type in context.Module.GetTypes())
@@ -287,4 +283,5 @@ public record ProtectionResult(
     ImmutableArray<string> AppliedStrategies,
     ImmutableArray<Exception> Errors,
     TimeSpan Duration,
-    ImmutableArray<DiagnosticMessage> Diagnostics);
+    ImmutableArray<DiagnosticMessage> Diagnostics
+);

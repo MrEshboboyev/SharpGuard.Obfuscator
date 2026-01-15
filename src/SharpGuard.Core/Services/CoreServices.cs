@@ -47,8 +47,7 @@ public class SecureRandomGenerator : IRandomGenerator
 
     public int Next(int min, int max)
     {
-        if (min > max)
-            throw new ArgumentOutOfRangeException(nameof(min));
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(min, max);
         if (min == max)
             return min;
 
@@ -62,8 +61,7 @@ public class SecureRandomGenerator : IRandomGenerator
 
     public byte[] NextBytes(int count)
     {
-        if (count < 0)
-            throw new ArgumentOutOfRangeException(nameof(count));
+        ArgumentOutOfRangeException.ThrowIfNegative(count);
 
         var bytes = new byte[count];
         _rng.GetBytes(bytes);
@@ -72,8 +70,7 @@ public class SecureRandomGenerator : IRandomGenerator
 
     public string NextString(int length)
     {
-        if (length < 0)
-            throw new ArgumentOutOfRangeException(nameof(length));
+        ArgumentOutOfRangeException.ThrowIfNegative(length);
 
         const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
         var bytes = NextBytes(length);
@@ -100,18 +97,13 @@ public class SecureRandomGenerator : IRandomGenerator
 /// Console-based logger implementation
 /// Implements Observer pattern
 /// </summary>
-public class ConsoleLogger : ILogger
+public class ConsoleLogger(
+    LogLevel minimumLevel = LogLevel.Information
+) : ILogger
 {
-    private readonly LogLevel _minimumLevel;
-
-    public ConsoleLogger(LogLevel minimumLevel = LogLevel.Information)
-    {
-        _minimumLevel = minimumLevel;
-    }
-
     public void LogInformation(string message, params object[] args)
     {
-        if (_minimumLevel >= LogLevel.Information)
+        if (minimumLevel >= LogLevel.Information)
         {
             Console.WriteLine($"[INFO] {FormatMessage(message, args)}");
         }
@@ -119,7 +111,7 @@ public class ConsoleLogger : ILogger
 
     public void LogWarning(string message, params object[] args)
     {
-        if (_minimumLevel >= LogLevel.Warning)
+        if (minimumLevel >= LogLevel.Warning)
         {
             Console.WriteLine($"[WARN] {FormatMessage(message, args)}");
         }
@@ -127,7 +119,7 @@ public class ConsoleLogger : ILogger
 
     public void LogError(Exception? exception, string message, params object[] args)
     {
-        if (_minimumLevel >= LogLevel.Error)
+        if (minimumLevel >= LogLevel.Error)
         {
             Console.WriteLine($"[ERROR] {FormatMessage(message, args)}");
             if (exception != null)
@@ -139,7 +131,7 @@ public class ConsoleLogger : ILogger
 
     public void LogDebug(string message, params object[] args)
     {
-        if (_minimumLevel >= LogLevel.Debug)
+        if (minimumLevel >= LogLevel.Debug)
         {
             Console.WriteLine($"[DEBUG] {FormatMessage(message, args)}");
         }
@@ -162,15 +154,10 @@ public class ConsoleLogger : ILogger
 /// Preserves metadata according to configuration
 /// Implements Chain of Responsibility pattern
 /// </summary>
-public class MetadataPreserver : IMetadataPreserver
+public class MetadataPreserver(
+    ProtectionConfiguration config
+) : IMetadataPreserver
 {
-    private readonly ProtectionConfiguration _config;
-
-    public MetadataPreserver(ProtectionConfiguration config)
-    {
-        _config = config;
-    }
-
     public bool ShouldPreserve(TypeDef type)
     {
         // Preserve framework types
@@ -179,11 +166,11 @@ public class MetadataPreserver : IMetadataPreserver
             return true;
 
         // Preserve explicitly excluded types
-        if (_config.ExcludedTypes.Contains(type.FullName))
+        if (config.ExcludedTypes.Contains(type.FullName))
             return true;
 
         // Preserve public API if configured
-        if (_config.PreservePublicApi && type.IsPublic)
+        if (config.PreservePublicApi && type.IsPublic)
             return true;
 
         return false;
@@ -204,11 +191,11 @@ public class MetadataPreserver : IMetadataPreserver
             return true;
 
         // Preserve explicitly excluded methods
-        if (_config.ExcludedMethods.Contains(method.FullName))
+        if (config.ExcludedMethods.Contains(method.FullName))
             return true;
 
         // Preserve public API if configured
-        if (_config.PreservePublicApi && (method.IsPublic || method.IsFamily))
+        if (config.PreservePublicApi && (method.IsPublic || method.IsFamily))
             return true;
 
         return false;
@@ -225,11 +212,11 @@ public class MetadataPreserver : IMetadataPreserver
             return true;
 
         // Preserve explicitly excluded fields
-        if (_config.ExcludedMethods.Contains(field.FullName))
+        if (config.ExcludedMethods.Contains(field.FullName))
             return true;
 
         // Preserve public API if configured
-        if (_config.PreservePublicApi && field.IsPublic)
+        if (config.PreservePublicApi && field.IsPublic)
             return true;
 
         return false;
@@ -237,7 +224,7 @@ public class MetadataPreserver : IMetadataPreserver
 
     public void PreserveAttributes(IHasCustomAttribute member)
     {
-        if (!_config.PreserveCustomAttributes)
+        if (!config.PreserveCustomAttributes)
             return;
 
         // Remove obfuscation-incompatible attributes
@@ -290,8 +277,11 @@ public static class ProtectionExtensions
                 MethodSig.CreateStatic(type.Module.CorLibTypes.Void),
                 MethodImplAttributes.IL | MethodImplAttributes.Managed,
                 MethodAttributes.Static | MethodAttributes.Private | MethodAttributes.SpecialName | MethodAttributes.RTSpecialName
-            );
-            ctor.Body = new CilBody();
+            )
+            {
+                Body = new CilBody()
+            };
+
             type.Methods.Add(ctor);
         }
         return ctor;

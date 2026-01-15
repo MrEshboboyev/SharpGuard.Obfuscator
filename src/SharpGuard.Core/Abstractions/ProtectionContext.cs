@@ -9,9 +9,9 @@ namespace SharpGuard.Core.Abstractions;
 /// </summary>
 public sealed class ProtectionContext
 {
-    private readonly Dictionary<string, object> _services = new();
-    private readonly HashSet<string> _appliedStrategies = new();
-    private readonly List<DiagnosticMessage> _diagnostics = new();
+    private readonly Dictionary<string, object> _services = [];
+    private readonly HashSet<string> _appliedStrategies = [];
+    private readonly List<DiagnosticMessage> _diagnostics = [];
 
     /// <summary>
     /// Gets the module being protected

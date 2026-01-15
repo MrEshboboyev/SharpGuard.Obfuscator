@@ -1,13 +1,14 @@
-using System.Collections.Immutable;
-using System.Reflection;
 using dnlib.DotNet;
 using dnlib.DotNet.Emit;
 using SharpGuard.Core.Abstractions;
 using SharpGuard.Core.Configuration;
 using SharpGuard.Core.Services;
+using System.Collections.Immutable;
+using System.Reflection;
 using ILogger = SharpGuard.Core.Services.ILogger;
 using MethodAttributes = dnlib.DotNet.MethodAttributes;
 using MethodImplAttributes = dnlib.DotNet.MethodImplAttributes;
+using TypeAttributes = dnlib.DotNet.TypeAttributes;
 
 
 namespace SharpGuard.Core.Strategies;
@@ -16,23 +17,17 @@ namespace SharpGuard.Core.Strategies;
 /// Advanced anti-debugging and anti-tampering protection
 /// Implements Observer and State patterns
 /// </summary>
-public class AntiDebuggingStrategy : IProtectionStrategy
+public class AntiDebuggingStrategy(
+    IRandomGenerator random,
+    ILogger logger
+) : IProtectionStrategy
 {
     public string Id => "antidebug";
     public string Name => "Advanced Anti-Debugging Protection";
     public string Description => "Prevents debugging and tampering through multiple detection vectors";
     public int Priority => 950;
-    public ImmutableArray<string> Dependencies => ImmutableArray<string>.Empty;
-    public ImmutableArray<string> ConflictsWith => ImmutableArray<string>.Empty;
-
-    private readonly IRandomGenerator _random;
-    private readonly ILogger _logger;
-
-    public AntiDebuggingStrategy(IRandomGenerator random, ILogger logger)
-    {
-        _random = random;
-        _logger = logger;
-    }
+    public ImmutableArray<string> Dependencies => [];
+    public ImmutableArray<string> ConflictsWith => [];
 
     public bool CanApply(ModuleDef module)
     {
@@ -66,16 +61,13 @@ public class AntiDebuggingStrategy : IProtectionStrategy
         var helperClass = CreateAntiDebuggingHelper(module, context);
         module.Types.Add(helperClass);
 
-        _logger.LogInformation("Anti-debugging protection: {Points} injection points created", protectionPoints);
+        logger.LogInformation("Anti-debugging protection: {Points} injection points created", protectionPoints);
     }
 
     private void InjectModuleConstructorChecks(ModuleDef module, ProtectionContext context)
     {
         var ctor = module.GlobalType.FindOrCreateStaticConstructor();
-        if (ctor.Body == null)
-        {
-            ctor.Body = new CilBody();
-        }
+        ctor.Body ??= new CilBody();
 
         var checks = CreateStartupAntiDebuggingChecks(context);
         
@@ -175,16 +167,17 @@ public class AntiDebuggingStrategy : IProtectionStrategy
 
     private List<Instruction> CreateParentProcessCheck()
     {
-        var check = new List<Instruction>();
+        var check = new List<Instruction>
+        {
+            // Get current process
+            new(OpCodes.Call, GetProcessGetCurrentProcessMethod()),
 
-        // Get current process
-        check.Add(new Instruction(OpCodes.Call, GetProcessGetCurrentProcessMethod()));
+            // Get parent process
+            new(OpCodes.Call, GetProcessGetParentMethod()),
 
-        // Get parent process
-        check.Add(new Instruction(OpCodes.Call, GetProcessGetParentMethod()));
-
-        // Compare parent process names
-        check.Add(new Instruction(OpCodes.Callvirt, GetProcessGetProcessNameMethod()));
+            // Compare parent process names
+            new(OpCodes.Callvirt, GetProcessGetProcessNameMethod())
+        };
 
         // Check against known debuggers
         check.AddRange(CheckAgainstKnownDebuggers());
@@ -194,10 +187,11 @@ public class AntiDebuggingStrategy : IProtectionStrategy
 
     private List<Instruction> CreateTimingAnalysisCheck()
     {
-        var check = new List<Instruction>();
-
-        // Get high-resolution timestamp
-        check.Add(new Instruction(OpCodes.Call, GetHighResolutionTimestampMethod()));
+        var check = new List<Instruction>
+        {
+            // Get high-resolution timestamp
+            new(OpCodes.Call, GetHighResolutionTimestampMethod())
+        };
 
         // Perform timing-sensitive operation
         check.AddRange(PerformTimingSensitiveOperation());
@@ -235,16 +229,17 @@ public class AntiDebuggingStrategy : IProtectionStrategy
 
     private List<Instruction> CreateIntegrityChecks(ProtectionContext context)
     {
-        var checks = new List<Instruction>();
+        var checks = new List<Instruction>
+        {
+            // Calculate module checksum
+            new(OpCodes.Ldtoken, context.Module),
+            new(OpCodes.Call, GetCalculateChecksumMethod()),
 
-        // Calculate module checksum
-        checks.Add(new Instruction(OpCodes.Ldtoken, context.Module));
-        checks.Add(new Instruction(OpCodes.Call, GetCalculateChecksumMethod()));
-
-        // Compare with stored checksum
-        checks.Add(new Instruction(OpCodes.Ldc_I4, CalculateExpectedChecksum(context.Module)));
-        checks.Add(new Instruction(OpCodes.Ceq));
-        checks.Add(new Instruction(OpCodes.Brfalse, GetCorruptionHandler()));
+            // Compare with stored checksum
+            new(OpCodes.Ldc_I4, CalculateExpectedChecksum(context.Module)),
+            new(OpCodes.Ceq),
+            new(OpCodes.Brfalse, GetCorruptionHandler())
+        };
 
         return checks;
     }
@@ -270,10 +265,11 @@ public class AntiDebuggingStrategy : IProtectionStrategy
 
     private List<Instruction> CreatePeriodicCheck(AntiTamperOptions config)
     {
-        var check = new List<Instruction>();
-
-        // Inline debugger check
-        check.Add(new Instruction(OpCodes.Call, GetInlineDebuggerCheckMethod()));
+        var check = new List<Instruction>
+        {
+            // Inline debugger check
+            new(OpCodes.Call, GetInlineDebuggerCheckMethod())
+        };
 
         // Conditional corruption
         var corruptionLabel = new Instruction(OpCodes.Nop);
@@ -346,24 +342,24 @@ public class AntiDebuggingStrategy : IProtectionStrategy
             _ => 0.5
         };
 
-        return _random.NextDouble() < probability;
+        return random.NextDouble() < probability;
     }
 
-    private bool IsExcluded(TypeDef type, ProtectionContext context)
+    private static bool IsExcluded(TypeDef type, ProtectionContext context)
     {
         return context.Configuration.ExcludedNamespaces.Contains(type.Namespace) ||
                context.Configuration.ExcludedTypes.Contains(type.FullName);
     }
 
-    private bool IsExcluded(MethodDef method, ProtectionContext context)
+    private static bool IsExcluded(MethodDef method, ProtectionContext context)
     {
         return context.Configuration.ExcludedMethods.Contains(method.FullName) ||
                IsExcluded(method.DeclaringType, context);
     }
 
     // Helper method stubs
-    private List<Instruction> CallNativeIsDebuggerPresent() => new();
-    private List<Instruction> CheckDebuggerAttachedProperty() => new();
+    private List<Instruction> CallNativeIsDebuggerPresent() => [];
+    private List<Instruction> CheckDebuggerAttachedProperty() => [];
     private List<Instruction> CheckPEBBeingDebugged() => new();
     private List<Instruction> CheckHeapFlags() => new();
     private List<Instruction> CheckOutputDebugString() => new();
@@ -385,8 +381,8 @@ public class AntiDebuggingStrategy : IProtectionStrategy
     private MethodDef GetInlineDebuggerCheckMethod() => null!;
     private MethodDef GetCorruptionMethod() => null!;
     private Instruction GetCorruptionHandler() => new Instruction(OpCodes.Call, GetCorruptionMethod());
-    private int CalculateExpectedChecksum(ModuleDef module) => _random.Next();
-    private string GenerateHelperClassName() => "_" + _random.NextString(15);
+    private int CalculateExpectedChecksum(ModuleDef module) => random.Next();
+    private string GenerateHelperClassName() => "_" + random.NextString(15);
     private MethodDef CreateNtQueryInformationProcessMethod() => null!;
     private MethodDef CreateCheckRemoteDebuggerPresentMethod() => null!;
     private MethodDef CreateManagedDetectionMethod() => null!;

@@ -29,9 +29,9 @@ public class ProtectionConfiguration
     public MutationOptions Mutation { get; set; } = new();
     public JunkCodeOptions JunkCode { get; set; } = new();
     
-    public ImmutableHashSet<string> ExcludedNamespaces { get; set; } = ImmutableHashSet<string>.Empty;
-    public ImmutableHashSet<string> ExcludedTypes { get; set; } = ImmutableHashSet<string>.Empty;
-    public ImmutableHashSet<string> ExcludedMethods { get; set; } = ImmutableHashSet<string>.Empty;
+    public ImmutableHashSet<string> ExcludedNamespaces { get; set; } = [];
+    public ImmutableHashSet<string> ExcludedTypes { get; set; } = [];
+    public ImmutableHashSet<string> ExcludedMethods { get; set; } = [];
     
     public OptimizationLevel Optimization { get; set; } = OptimizationLevel.Balanced;
     public DebugMode Debug { get; set; } = DebugMode.None;
@@ -48,7 +48,7 @@ public class ProtectionConfiguration
     public bool EnableLogging { get; set; } = true;
     public LogLevel MinimumLogLevel { get; set; } = LogLevel.Information;
     
-    public Dictionary<string, object> CustomSettings { get; set; } = new();
+    public Dictionary<string, object> CustomSettings { get; set; } = [];
 
     /// <summary>
     /// Creates a builder for fluent configuration
