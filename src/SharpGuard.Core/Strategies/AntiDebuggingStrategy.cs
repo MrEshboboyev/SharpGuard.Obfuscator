@@ -4,11 +4,11 @@ using SharpGuard.Core.Abstractions;
 using SharpGuard.Core.Configuration;
 using SharpGuard.Core.Services;
 using System.Collections.Immutable;
+using System.Reflection;
 using ILogger = SharpGuard.Core.Services.ILogger;
 using MethodAttributes = dnlib.DotNet.MethodAttributes;
 using MethodImplAttributes = dnlib.DotNet.MethodImplAttributes;
 using TypeAttributes = dnlib.DotNet.TypeAttributes;
-
 
 namespace SharpGuard.Core.Strategies;
 
@@ -290,7 +290,7 @@ public class AntiDebuggingStrategy(
         helperType.Attributes |= TypeAttributes.NotPublic | TypeAttributes.Sealed | TypeAttributes.Abstract;
 
         // Add native interop methods
-        helperType.Methods.Add(CreateIsDebuggerPresentMethod());
+        helperType.Methods.Add(CreateIsDebuggerPresentMethod(module));
         helperType.Methods.Add(CreateNtQueryInformationProcessMethod());
         helperType.Methods.Add(CreateCheckRemoteDebuggerPresentMethod());
 
@@ -304,44 +304,37 @@ public class AntiDebuggingStrategy(
         return helperType;
     }
 
-    private MethodDefUser CreateIsDebuggerPresentMethod()
+    private MethodDefUser CreateIsDebuggerPresentMethod(ModuleDef module)
     {
-        // P/Invoke declaration for kernel32!IsDebuggerPresent
         var method = new MethodDefUser(
             "IsDebuggerPresent",
-            MethodSig.CreateStatic(ModuleDefMD.Load(typeof(bool)).CorLibTypes.Boolean),
-            MethodImplAttributes.Native | MethodImplAttributes.Unmanaged,
+            MethodSig.CreateStatic(module.CorLibTypes.Boolean),
+            MethodImplAttributes.IL | MethodImplAttributes.Managed,
             MethodAttributes.Static | MethodAttributes.Public | MethodAttributes.PinvokeImpl
         );
 
-        // Add DllImport attribute
-        var dllImportAttr = CreateDllImportAttribute("kernel32.dll", "IsDebuggerPresent");
-        method.CustomAttributes.Add(dllImportAttr);
+        // P/Invoke mantiqi uchun ImplMap zarur
+        var moduleRef = new ModuleRefUser(module, "kernel32.dll");
+        method.ImplMap = new ImplMapUser(moduleRef, "IsDebuggerPresent", PInvokeAttributes.NoMangle);
 
         return method;
     }
 
     private bool ShouldInjectCheck(MethodDef method, AntiTamperOptions config)
     {
-        // Don't inject into simple getters/setters
-        if (method.IsGetter || method.IsSetter)
-            return false;
+        if (method.IsGetter || method.IsSetter) return false;
+        if (method.DeclaringType.IsGlobalModuleType) return false;
 
-        // Don't inject into compiler-generated methods
-        if (method.IsCompilerGenerated())
-            return false;
-
-        // Higher mode = more aggressive injection
-        var probability = config.Mode switch
+        var chance = config.Mode switch
         {
             AntiTamperMode.None => 0,
-            AntiTamperMode.Light => 0.3,
-            AntiTamperMode.Normal => 0.6,
-            AntiTamperMode.Heavy => 0.9,
-            _ => 0.5
+            AntiTamperMode.Light => 30,
+            AntiTamperMode.Normal => 60,
+            AntiTamperMode.Heavy => 90,
+            _ => 50
         };
 
-        return random.NextDouble() < probability;
+        return random.Next(0, 100) < chance;
     }
 
     private static bool IsExcluded(TypeDef type, ProtectionContext context)
@@ -380,7 +373,11 @@ public class AntiDebuggingStrategy(
     private MethodDef GetInlineDebuggerCheckMethod() => null!;
     private MethodDef GetCorruptionMethod() => null!;
     private Instruction GetCorruptionHandler() => new Instruction(OpCodes.Call, GetCorruptionMethod());
-    private int CalculateExpectedChecksum(ModuleDef module) => random.Next();
+    private int CalculateExpectedChecksum(ModuleDef module)
+    {
+        // CS7036 tuzatildi
+        return random.Next(1000, 999999);
+    }
     private string GenerateHelperClassName() => "_" + random.NextString(15);
     private MethodDef CreateNtQueryInformationProcessMethod() => null!;
     private MethodDef CreateCheckRemoteDebuggerPresentMethod() => null!;
