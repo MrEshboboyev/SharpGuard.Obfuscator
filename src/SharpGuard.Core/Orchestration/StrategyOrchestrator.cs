@@ -116,7 +116,7 @@ public class StrategyOrchestrator(
         if (enabledStrategies.Count == 0)
         {
             logger.LogWarning("No protection strategies are enabled");
-            return ImmutableList<IProtectionStrategy>.Empty;
+            return [];
         }
 
         // Build dependency graph
@@ -137,7 +137,7 @@ public class StrategyOrchestrator(
         return [.. sorted];
     }
 
-    private Dictionary<IProtectionStrategy, List<IProtectionStrategy>> BuildDependencyGraph(
+    private static Dictionary<IProtectionStrategy, List<IProtectionStrategy>> BuildDependencyGraph(
         List<IProtectionStrategy> strategies)
     {
         var graph = new Dictionary<IProtectionStrategy, List<IProtectionStrategy>>();
@@ -199,7 +199,7 @@ public class StrategyOrchestrator(
         return graph.Keys.Any(HasCycle);
     }
 
-    private List<IProtectionStrategy> TopologicalSort(
+    private static List<IProtectionStrategy> TopologicalSort(
         Dictionary<IProtectionStrategy, List<IProtectionStrategy>> graph)
     {
         var visited = new HashSet<IProtectionStrategy>();
