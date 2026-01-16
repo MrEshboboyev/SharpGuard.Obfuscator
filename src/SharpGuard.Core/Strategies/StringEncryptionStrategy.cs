@@ -6,7 +6,7 @@ using dnlib.DotNet.Emit;
 using SharpGuard.Core.Abstractions;
 using SharpGuard.Core.Configuration;
 using SharpGuard.Core.Services;
-using ILogger = dnlib.DotNet.ILogger;
+using ILogger = SharpGuard.Core.Services.ILogger;
 
 namespace SharpGuard.Core.Strategies;
 
@@ -184,7 +184,7 @@ public class StringEncryptionStrategy(
         }
     }
 
-    private TypeDef CreateDecryptionHelperClass(ModuleDef module, EncryptionOptions config)
+    private TypeDefUser CreateDecryptionHelperClass(ModuleDef module, EncryptionOptions config)
     {
         var typeName = GenerateObfuscatedName();
         var helperType = new TypeDefUser(module.GlobalType.Namespace, typeName, module.CorLibTypes.Object.TypeDef);
@@ -200,11 +200,11 @@ public class StringEncryptionStrategy(
         return helperType;
     }
 
-    private MethodDef CreateStaticDecryptorMethod(ModuleDef module, EncryptionOptions config)
+    private MethodDefUser CreateStaticDecryptorMethod(ModuleDef module, EncryptionOptions config)
     {
         var method = new MethodDefUser(
             GenerateObfuscatedMethodName(),
-            MethodSig.CreateStatic(module.CorLibTypes.String, module.CorLibTypes.RuntimeFieldHandle),
+            MethodSig.CreateStatic(module.CorLibTypes.String, module.ImportAsTypeSig(typeof(System.RuntimeFieldHandle))),
             MethodImplAttributes.IL | MethodImplAttributes.Managed,
             MethodAttributes.Static | MethodAttributes.Private | MethodAttributes.HideBySig
         );
@@ -237,13 +237,13 @@ public class StringEncryptionStrategy(
         return method;
     }
 
-    private MethodDef CreateDynamicDecryptorMethod(ModuleDef module, EncryptionOptions config)
+    private MethodDefUser CreateDynamicDecryptorMethod(ModuleDef module, EncryptionOptions config)
     {
         var method = new MethodDefUser(
             GenerateObfuscatedMethodName(),
-            MethodSig.CreateStatic(module.CorLibTypes.String, 
-                module.CorLibTypes.RuntimeFieldHandle, // encrypted data
-                module.CorLibTypes.RuntimeFieldHandle), // key
+            MethodSig.CreateStatic(module.CorLibTypes.String,
+                module.ImportAsTypeSig(typeof(RuntimeFieldHandle)), // encrypted data
+                module.ImportAsTypeSig(typeof(RuntimeFieldHandle))), // key
             MethodImplAttributes.IL | MethodImplAttributes.Managed,
             MethodAttributes.Static | MethodAttributes.Private | MethodAttributes.HideBySig
         );
@@ -277,7 +277,7 @@ public class StringEncryptionStrategy(
         return new EncryptedString(value, encryptedData, key, config.Algorithm);
     }
 
-    private byte[] EncryptWithAES(string value, byte[] key)
+    private static byte[] EncryptWithAES(string value, byte[] key)
     {
         using var aes = Aes.Create();
         aes.Key = SHA256.HashData(key);
@@ -307,7 +307,7 @@ public class StringEncryptionStrategy(
         return result;
     }
 
-    private byte[] EncryptWithCustomAlgorithm(string value, byte[] key)
+    private static byte[] EncryptWithCustomAlgorithm(string value, byte[] key)
     {
         var data = Encoding.UTF8.GetBytes(value);
         var result = new byte[data.Length];
@@ -365,7 +365,7 @@ public class StringEncryptionStrategy(
         return "__" + random.NextString(12);
     }
 
-    private bool HasStrings(MethodDef method)
+    private static bool HasStrings(MethodDef method)
     {
         return method.Body?.Instructions.Any(i => i.OpCode == OpCodes.Ldstr) ?? false;
     }

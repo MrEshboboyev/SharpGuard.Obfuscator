@@ -4,7 +4,6 @@ using SharpGuard.Core.Abstractions;
 using SharpGuard.Core.Configuration;
 using SharpGuard.Core.Services;
 using System.Collections.Immutable;
-using System.Reflection;
 using ILogger = SharpGuard.Core.Services.ILogger;
 using MethodAttributes = dnlib.DotNet.MethodAttributes;
 using MethodImplAttributes = dnlib.DotNet.MethodImplAttributes;
@@ -305,7 +304,7 @@ public class AntiDebuggingStrategy(
         return helperType;
     }
 
-    private MethodDef CreateIsDebuggerPresentMethod()
+    private MethodDefUser CreateIsDebuggerPresentMethod()
     {
         // P/Invoke declaration for kernel32!IsDebuggerPresent
         var method = new MethodDefUser(
