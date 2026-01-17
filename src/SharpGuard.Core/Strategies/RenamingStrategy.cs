@@ -388,7 +388,7 @@ public class RenamingStrategy(
         return true;
     }
 
-    private bool ShouldRenameField(FieldDef field, RenamingOptions config, ProtectionContext context)
+    private static bool ShouldRenameField(FieldDef field, RenamingOptions config, ProtectionContext context)
     {
         // Don't rename if excluded
         if (context.Configuration.ExcludedMethods.Contains(field.FullName))
@@ -427,13 +427,13 @@ public class RenamingStrategy(
         return shouldRenameAdd || shouldRenameRemove;
     }
 
-    private bool IsExcludedType(TypeDef type, ProtectionContext context)
+    private static bool IsExcludedType(TypeDef type, ProtectionContext context)
     {
         return context.Configuration.ExcludedNamespaces.Contains(type.Namespace) ||
                context.Configuration.ExcludedTypes.Contains(type.FullName);
     }
 
-    private HashSet<string> IdentifyFrameworkTypes(ModuleDef module)
+    private static HashSet<string> IdentifyFrameworkTypes(ModuleDef module)
     {
         var frameworkTypes = new HashSet<string>();
         

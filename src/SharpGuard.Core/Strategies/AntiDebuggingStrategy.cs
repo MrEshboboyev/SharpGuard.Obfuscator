@@ -4,7 +4,6 @@ using SharpGuard.Core.Abstractions;
 using SharpGuard.Core.Configuration;
 using SharpGuard.Core.Services;
 using System.Collections.Immutable;
-using System.Reflection;
 using ILogger = SharpGuard.Core.Services.ILogger;
 using MethodAttributes = dnlib.DotNet.MethodAttributes;
 using MethodImplAttributes = dnlib.DotNet.MethodImplAttributes;
@@ -279,7 +278,7 @@ public class AntiDebuggingStrategy(
         return check;
     }
 
-    private TypeDef CreateAntiDebuggingHelper(ModuleDef module, ProtectionContext context)
+    private TypeDefUser CreateAntiDebuggingHelper(ModuleDef module, ProtectionContext context)
     {
         var helperType = new TypeDefUser(
             module.GlobalType.Namespace,

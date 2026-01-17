@@ -7,7 +7,7 @@ namespace SharpGuard.Core.Abstractions;
 /// Context containing shared state and services for protection operations
 /// Implements Dependency Injection pattern
 /// </summary>
-public sealed class ProtectionContext
+public sealed class ProtectionContext(ModuleDef module, ProtectionConfiguration configuration)
 {
     private readonly Dictionary<string, object> _services = [];
     private readonly HashSet<string> _appliedStrategies = [];
@@ -16,12 +16,12 @@ public sealed class ProtectionContext
     /// <summary>
     /// Gets the module being protected
     /// </summary>
-    public ModuleDef Module { get; }
+    public ModuleDef Module { get; } = module ?? throw new ArgumentNullException(nameof(module));
 
     /// <summary>
     /// Gets the configuration for protection
     /// </summary>
-    public ProtectionConfiguration Configuration { get; }
+    public ProtectionConfiguration Configuration { get; } = configuration ?? throw new ArgumentNullException(nameof(configuration));
 
     /// <summary>
     /// Gets diagnostic messages collected during protection
@@ -32,12 +32,6 @@ public sealed class ProtectionContext
     /// Gets the set of strategies that have been applied
     /// </summary>
     public IReadOnlySet<string> AppliedStrategies => _appliedStrategies;
-
-    public ProtectionContext(ModuleDef module, ProtectionConfiguration configuration)
-    {
-        Module = module ?? throw new ArgumentNullException(nameof(module));
-        Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-    }
 
     /// <summary>
     /// Registers a service in the context
@@ -117,7 +111,8 @@ public record DiagnosticMessage(
     DiagnosticSeverity Severity,
     string Code,
     string Message,
-    object? Data);
+    object? Data
+);
 
 /// <summary>
 /// Severity levels for diagnostic messages

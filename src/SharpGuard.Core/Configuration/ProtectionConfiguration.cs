@@ -107,7 +107,7 @@ public class ProtectionConfigurationBuilder
 
     public ProtectionConfigurationBuilder ExcludeNamespace(params string[] namespaces)
     {
-        _config.ExcludedNamespaces = _config.ExcludedNamespaces.Union(namespaces).ToImmutableHashSet();
+        _config.ExcludedNamespaces = _config.ExcludedNamespaces.Union(namespaces);
         return this;
     }
 

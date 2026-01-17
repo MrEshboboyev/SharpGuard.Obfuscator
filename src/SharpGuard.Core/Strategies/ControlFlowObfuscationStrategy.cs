@@ -232,7 +232,7 @@ public class ControlFlowObfuscationStrategy(
         return [.. points.OrderBy(_ => random.Next(0, 1000))];
     }
 
-    private bool IsBranchingInstruction(OpCode opcode)
+    private static bool IsBranchingInstruction(OpCode opcode)
     {
         return opcode.FlowControl == FlowControl.Branch || 
                opcode.FlowControl == FlowControl.Cond_Branch ||
@@ -240,13 +240,13 @@ public class ControlFlowObfuscationStrategy(
                opcode == OpCodes.Throw;
     }
 
-    private bool IsExcluded(TypeDef type, ProtectionContext context)
+    private static bool IsExcluded(TypeDef type, ProtectionContext context)
     {
         return context.Configuration.ExcludedNamespaces.Contains(type.Namespace) ||
                context.Configuration.ExcludedTypes.Contains(type.FullName);
     }
 
-    private bool IsExcluded(MethodDef method, ProtectionContext context)
+    private static bool IsExcluded(MethodDef method, ProtectionContext context)
     {
         return context.Configuration.ExcludedMethods.Contains(method.FullName) ||
                IsExcluded(method.DeclaringType, context);
