@@ -1,6 +1,8 @@
 ﻿using SharpGuard.CLI;
 using SharpGuard.Core;
+using SharpGuard.Core.Abstractions;
 using SharpGuard.Core.Configuration;
+using SharpGuard.Core.Orchestration;
 using SharpGuard.Core.Services;
 
 Console.WriteLine("=== SharpGuard Advanced Obfuscator v2.0 ===");

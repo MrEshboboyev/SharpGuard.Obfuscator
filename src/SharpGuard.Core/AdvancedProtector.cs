@@ -258,39 +258,39 @@ public class AdvancedProtector
         return new ProtectionResult(
             Success: errors.Count == 0,
             AppliedStrategies: protectionResult.AppliedStrategies,
-            Errors: errors.ToImmutableArray(),
+            Errors: [.. errors],
             Duration: protectionResult.Duration,
             Diagnostics: protectionResult.Diagnostics
         );
     }
 
-    private async Task ApplyFinalOptimizationsAsync(ModuleDef module, ProtectionConfiguration config)
+    private static async Task ApplyFinalOptimizationsAsync(ModuleDef module, ProtectionConfiguration config)
     {
-        // Remove debug symbols if not preserving
         if (!config.PreserveDebugSymbols)
         {
-            module.PdbState = null;
+            module.CustomDebugInfos.Clear();
         }
 
-        // Optimize IL code
         foreach (var type in module.GetTypes())
         {
             foreach (var method in type.Methods.Where(m => m.HasBody))
             {
-                method.Body.SimplifyMacros();
-                method.Body.OptimizeMacros();
-                
+                var body = method.Body;
+
+                body.SimplifyMacros(method.Parameters);
+
+                body.OptimizeMacros();
+
                 if (config.Optimization >= OptimizationLevel.Balanced)
                 {
-                    method.Body.SimplifyBranches();
-                    method.Body.OptimizeBranches();
+                    body.SimplifyBranches();
+                    body.OptimizeBranches();
                 }
             }
         }
 
         await Task.CompletedTask;
     }
-
     private async Task<ProtectionResult> ValidateProtectedModuleAsync(ModuleDef module, ProtectionConfiguration config)
     {
         var errors = new List<Exception>();

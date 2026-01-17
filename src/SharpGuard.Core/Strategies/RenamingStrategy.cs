@@ -69,33 +69,33 @@ public class RenamingStrategy(
 
     private NamingContext AnalyzeNamingContext(ModuleDef module, ProtectionContext context)
     {
-        var context = new NamingContext();
+        var namingContext = new NamingContext();
         
         // Collect existing names to avoid collisions
         foreach (var type in module.GetTypes())
         {
-            context.ExistingNames.Add(type.Name.String);
+            namingContext.ExistingNames.Add(type.Name.String);
             
             foreach (var method in type.Methods)
             {
-                context.ExistingNames.Add(method.Name.String);
+                namingContext.ExistingNames.Add(method.Name.String);
             }
             
             foreach (var field in type.Fields)
             {
-                context.ExistingNames.Add(field.Name.String);
+                namingContext.ExistingNames.Add(field.Name.String);
             }
             
             foreach (var prop in type.Properties)
             {
-                context.ExistingNames.Add(prop.Name.String);
+                namingContext.ExistingNames.Add(prop.Name.String);
             }
         }
 
         // Identify framework types that shouldn't be renamed
-        context.FrameworkTypes = IdentifyFrameworkTypes(module);
+        namingContext.FrameworkTypes = IdentifyFrameworkTypes(module);
 
-        return context;
+        return namingContext;
     }
 
     private int RenameTypes(ModuleDef module, NamingContext namingContext, RenamingOptions config, ProtectionContext context)
@@ -477,12 +477,13 @@ public class RenamingStrategy(
     {
         // Implementation would generate a mapping file for deobfuscation
     }
+}
 
-    private class NamingContext
-    {
-        public HashSet<string> ExistingNames { get; } = new();
-        public HashSet<string> FrameworkTypes { get; set; } = new();
-    }
+
+internal class NamingContext
+{
+    public HashSet<string> ExistingNames { get; } = new();
+    public HashSet<string> FrameworkTypes { get; set; } = new();
 }
 
 /// <summary>
