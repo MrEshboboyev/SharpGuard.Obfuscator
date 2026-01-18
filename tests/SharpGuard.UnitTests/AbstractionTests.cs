@@ -83,7 +83,8 @@ public class AbstractionTests
         var context = CreateTestContext();
 
         // Act & Assert
-        Assert.Throws<ArgumentException>(() => context.MarkStrategyApplied(null!));
+        Assert.Throws<ArgumentNullException>(() => context.MarkStrategyApplied(null!));
+
         Assert.Throws<ArgumentException>(() => context.MarkStrategyApplied(""));
     }
 

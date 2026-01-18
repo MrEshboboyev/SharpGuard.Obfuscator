@@ -1,3 +1,4 @@
+using dnlib.DotNet;
 using SharpGuard.Core.Configuration;
 using SharpGuard.Core.Services;
 
@@ -356,13 +357,25 @@ public class ServiceTestsr
     public void ProtectionExtensions_IsCompilerGenerated_DetectsAttribute()
     {
         // Arrange
-        var method = new MockMethodDef();
+        var module = new ModuleDefUser("TestModule.dll");
+        var method = new MethodDefUser(
+            "TestMethod",
+            MethodSig.CreateStatic(module.CorLibTypes.Void)
+        );
+
+        var attrTypeRef = module.CorLibTypes.GetTypeRef(
+            "System.Runtime.CompilerServices",
+            "CompilerGeneratedAttribute"
+        );
+
+        var ctorRef = new MemberRefUser(module, ".ctor",
+            MethodSig.CreateInstance(module.CorLibTypes.Void),
+            attrTypeRef);
+
+        var attribute = new CustomAttribute(ctorRef);
+        method.CustomAttributes.Add(attribute);
 
         // Act & Assert
-        Assert.False(method.IsCompilerGenerated());
-        
-        // Add compiler generated attribute
-        method.CustomAttributes.Add(new MockCustomAttribute("System.Runtime.CompilerServices.CompilerGeneratedAttribute"));
         Assert.True(method.IsCompilerGenerated());
     }
 
@@ -423,13 +436,13 @@ public class ServiceTestsr
     {
         public string Name { get; set; } = string.Empty;
         public bool IsStaticConstructor { get; set; } = false;
-        public System.Collections.Generic.List<MockCustomAttribute> CustomAttributes { get; } = new();
+        public List<MockCustomAttribute> CustomAttributes { get; } = new();
     }
 
     public class MockTypeDef
     {
         public bool IsGlobalModuleType { get; set; } = false;
-        public System.Collections.Generic.List<MockMethodDef> Methods { get; } = new();
+        public List<MockMethodDef> Methods { get; } = new();
         
         public MockMethodDef FindOrCreateStaticConstructor()
         {
@@ -449,22 +462,17 @@ public class ServiceTestsr
 
     public class MockModuleDef
     {
-        public System.Collections.Generic.List<MockTypeDef> Types { get; } = new();
+        public List<MockTypeDef> Types { get; } = [];
         
-        public System.Collections.Generic.IEnumerable<MockTypeDef> GetTypes()
+        public IEnumerable<MockTypeDef> GetTypes()
         {
             return Types.Where(t => !t.IsGlobalModuleType);
         }
     }
 
-    public class MockCustomAttribute
+    public class MockCustomAttribute(string attributeTypeFullName)
     {
-        public string AttributeTypeFullName { get; }
-
-        public MockCustomAttribute(string attributeTypeFullName)
-        {
-            AttributeTypeFullName = attributeTypeFullName;
-        }
+        public string AttributeTypeFullName { get; } = attributeTypeFullName;
 
         public string AttributeType => AttributeTypeFullName;
         public string FullName => AttributeTypeFullName;

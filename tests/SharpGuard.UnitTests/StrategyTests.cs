@@ -1,4 +1,5 @@
 using dnlib.DotNet;
+using dnlib.DotNet.Emit;
 using SharpGuard.Core.Abstractions;
 using SharpGuard.Core.Configuration;
 using SharpGuard.Core.Services;
@@ -459,34 +460,44 @@ public class StrategyTests
     }
 
 
-    private ModuleDefMD CreateMockModuleWithMethods()
+    private static ModuleDefUser CreateMockModuleWithMethods()
     {
         var module = CreateMockModule();
-        var type = new TypeDef { IsGlobalModuleType = false };
-        var method = new MethodDef { HasBody = true };
+        var type = new TypeDefUser("TestNamespace", "TestClass", module.CorLibTypes.Object.TypeDefOrRef);
+
+        var method = new MethodDefUser("TestMethod",
+            MethodSig.CreateStatic(module.CorLibTypes.Void),
+            MethodAttributes.Public | MethodAttributes.Static)
+        {
+            Body = new CilBody()
+        };
         type.Methods.Add(method);
         module.Types.Add(type);
+
         return module;
     }
 
-    private ModuleDefMD CreateMockModuleWithTypes()
+    private static ModuleDefUser CreateMockModuleWithTypes()
     {
         var module = CreateMockModule();
-        var type1 = new TypeDef { IsGlobalModuleType = false };
-        var type2 = new TypeDef { IsGlobalModuleType = false };
+
+        var type1 = new TypeDefUser("Namespace1", "Class1", module.CorLibTypes.Object.TypeDefOrRef);
+        var type2 = new TypeDefUser("Namespace2", "Class2", module.CorLibTypes.Object.TypeDefOrRef);
+
         module.Types.Add(type1);
         module.Types.Add(type2);
+
         return module;
     }
 
-    private ModuleDefMD CreateMockModuleWithStrings()
+    private static ModuleDefUser CreateMockModuleWithStrings()
     {
-        var module = CreateMockModule();
-        var type = new TypeDef { IsGlobalModuleType = false };
-        var method = new MethodDef { HasBody = true };
-        // In a real scenario, we'd add string instructions to the method body
-        type.Methods.Add(method);
-        module.Types.Add(type);
+        var module = CreateMockModuleWithMethods();
+        var method = module.Types[1].Methods[0];
+
+        method.Body.Instructions.Add(OpCodes.Ldstr.ToInstruction("Obfuscate Me!"));
+        method.Body.Instructions.Add(OpCodes.Ret.ToInstruction());
+
         return module;
     }
 
