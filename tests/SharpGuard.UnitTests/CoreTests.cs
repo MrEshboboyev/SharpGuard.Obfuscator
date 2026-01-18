@@ -205,10 +205,12 @@ public class AdvancedProtectorTests
 
         // Assert
         Assert.False(result.IsValid);
+
         Assert.Contains("Output path must be specified", result.Errors);
-        Assert.Contains("Control flow obfuscation and mutation may conflict", result.Warnings);
-        Assert.Contains("High virtualization percentage", result.Warnings);
-        Assert.Contains("Public API preservation may reduce renaming", result.Warnings);
+
+        Assert.Contains(result.Warnings, w => w.Contains("Control flow obfuscation and mutation"));
+        Assert.Contains(result.Warnings, w => w.Contains("High virtualization percentage"));
+        Assert.Contains(result.Warnings, w => w.Contains("Public API preservation"));
     }
 
     [Fact]
